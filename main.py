@@ -5,7 +5,8 @@ import subprocess
 import json
 from extract_weight import extract_weight_gemini
 
-GO_PRO_PATH = "/home/wavefire/Downloads/GOPRO"
+# GO_PRO_PATH = "/run/media/wavefire/6565-3263/DCIM/100GOPRO/"
+GO_PRO_PATH = ""
 
 # Coordinates and dimensions for the cropped region
 x = 577
@@ -14,7 +15,7 @@ width = 815
 height = 365
 
 
-def extract_date(video_path) -> float:
+def extract_date(video_path: str) -> float:
     # ffprobe -v quiet -select_streams v:0  -show_entries stream_tags=creation_time -of default=noprint_wrappers=1:nokey=1 input.mp4
     command = [
         "ffprobe",
@@ -35,9 +36,6 @@ def extract_date(video_path) -> float:
     print(f"{video_path}: {dt}")
     print(dt.timestamp())
     return dt.timestamp()
-
-
-# extract_date("/home/wavefire/Downloads/GOPRO/GH016298.MP4")
 
 
 def extract_frames_at_interval(video_path, output_folder, interval_seconds=60):
@@ -70,27 +68,23 @@ def extract_frames_at_interval(video_path, output_folder, interval_seconds=60):
             # Crop the frame to the specified region
             cropped_frame = frame[y : y + height, x : x + width]
             gray_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2GRAY)
-            bw_frame = cv2.adaptiveThreshold(
-                gray_frame,
-                255,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY,
-                11,
-                2,
-            )
-
-            # Format timestamp for filename
-            timestamp = str(datetime.timedelta(seconds=frame_number / fps)).replace(
-                ":", "-"
-            )
+            # bw_frame = cv2.adaptiveThreshold(
+            #     gray_frame,
+            #     255,
+            #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            #     cv2.THRESH_BINARY,
+            #     11,
+            #     2,
+            # )
 
             # Save the cropped frame
-            # frame_filename = os.path.join(output_folder, f"frame_{i+1}_{timestamp}.jpg")
             frame_filename = os.path.join(
-                output_folder, f"{date + (frame_number / fps)}.jpg"
+                output_folder, f"{date + (round(frame_number / fps))}.jpg"
             )
             cv2.imwrite(frame_filename, gray_frame)
-            print(f"Saved frame at {frame_number/fps:.2f} seconds: {frame_filename}")
+            print(
+                f"Saved frame at {round(frame_number / fps)} seconds: {frame_filename}"
+            )
 
     # Release the video capture object
     cap.release()
@@ -99,23 +93,28 @@ def extract_frames_at_interval(video_path, output_folder, interval_seconds=60):
     )
 
 
-# video_file = "/home/wavefire/Downloads/GOPRO/GH016298.MP4"
-# output_folder = "extracted_frames"
-# extract_frames_at_interval(
-#     video_file, output_folder, 60
-# )  # Extract a frame every 60 seconds (1 minute)
+videos = sorted(os.path.join(GO_PRO_PATH, "extracted_frames"))
+print(
+    f"Number of MP4s found: {sum(1 for video in videos if video.lower().endswith('.mp4'))}"
+)
 
-# for filename in sorted(os.listdir(GO_PRO_PATH)):
-#     print(filename)
+# for filename in sorted(os.path.join(GO_PRO_PATH, "extracted_frames")):
 #     if filename.lower().endswith(".mp4"):
 #         video_path = os.path.join(GO_PRO_PATH, filename)
-#         output_folder = os.path.join(GO_PRO_PATH, "extracted_frames", filename[:-4])
+#         output_folder = os.path.join("./extracted_frames", filename[:-4])
+#         if os.path.exists(output_folder):
+#             print(f"Skipping {filename}, already exists")
+#             continue
 #         extract_frames_at_interval(video_path, output_folder, 60)
 
 results = []
+total_frames_extracted = 0  # Initialize a counter for total frames extracted
+
+# Iterate through the extracted frames
 for folder in sorted(os.listdir(os.path.join(GO_PRO_PATH, "extracted_frames"))):
     if os.path.isdir(os.path.join(GO_PRO_PATH, "extracted_frames", folder)):
-        print("Extracting weights from: ", folder)
+        print("Extracting weights from:", folder)
+        frames_in_folder = 0  # Counter for frames in the current folder
         for filename in sorted(
             os.listdir(os.path.join(GO_PRO_PATH, "extracted_frames", folder))
         ):
@@ -125,5 +124,14 @@ for folder in sorted(os.listdir(os.path.join(GO_PRO_PATH, "extracted_frames"))):
                 )
                 results.append({"date": filename[:-4], "weight": weight})
                 print(filename[:-4], weight)
-with open("results.json", "w") as f:
+                frames_in_folder += 1  # Increment frames in the current folder
+
+        total_frames_extracted += frames_in_folder  # Add to total frames extracted
+        print(f"Total frames extracted from {folder}: {frames_in_folder}")
+
+# Print the overall total frames extracted
+print(f"Total frames extracted: {total_frames_extracted}")
+
+# Save results to JSON file
+with open("results2.json", "w") as f:
     json.dump(results, f)

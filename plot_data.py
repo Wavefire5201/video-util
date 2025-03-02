@@ -3,7 +3,7 @@ import json
 import datetime
 import matplotlib.pyplot as plt
 
-with open("results.json", "r") as f:
+with open("results2.json", "r") as f:
     results = json.load(f)
 
 dates = []
