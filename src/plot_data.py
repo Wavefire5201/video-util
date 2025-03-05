@@ -3,7 +3,7 @@ import json
 import datetime
 import matplotlib.pyplot as plt
 
-with open("results2.json", "r") as f:
+with open("3-3_to_3-4_Model_2015.json", "r") as f:
     results = json.load(f)
 
 dates = []
@@ -12,7 +12,7 @@ weights = []
 for result in results:
     date = datetime.datetime.fromtimestamp(float(result["date"]))
     dates.append(date)
-    weights.append(result["weight"])
+    weights.append(result["weight"] * -1)
 
 plt.figure(figsize=(10, 5))
 plt.plot(dates, weights, marker="o")
